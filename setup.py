@@ -11,20 +11,16 @@ long_description = (Path(__file__).parent / "README.md").read_text()
 
 def try_exec(*cmds):
     proc = subprocess.run(cmds)
-    
+
     if proc.returncode != 0:
-        print('`{}` failed'.format(' '.join(cmds)), file=sys.stderr)
+        print(f"`{' '.join(cmds)}` failed", file=sys.stderr)
         proc.check_returncode()
 
 class libdash_build_py(build_py):
     def run(self):
         build_py.run(self)
-        
-        if sys.platform == 'darwin':           
-            libtoolize = "glibtoolize"
-        else:
-            libtoolize = "libtoolize"
-        
+
+        libtoolize = "glibtoolize" if sys.platform == 'darwin' else "libtoolize"
         try_exec(libtoolize)
         try_exec('aclocal')
         try_exec('autoheader')

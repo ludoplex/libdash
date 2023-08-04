@@ -42,11 +42,8 @@ def parse(inputPath, init=True):
     else:
         setinputfile(libdash, inputPath)
 
-        fp = open (inputPath, 'r')
-        for line in fp:
-            lines.append (line)
-        fp.close()
-
+        with open (inputPath, 'r') as fp:
+            lines.extend(iter(fp))
     # struct parsefile *parsefile = &basepf;  /* current input file */
     # Get the value of parsefile (not &parsefile)!
     parsefile_ptr_ptr = addressof(parsefile.in_dll (libdash, "parsefile"))
@@ -58,28 +55,26 @@ def parse(inputPath, init=True):
     NEOF = addressof(c_int.in_dll(libdash, "tokpushback"))
     NERR = addressof(c_int.in_dll(libdash, "lasttoken"))
 
-    while (True):
-        linno_before = parsefile_var.contents.linno - 1; # libdash is 1-indexed
-
+    while True:
+        linno_before = parsefile_var.contents.linno - 1
         n_ptr_C = parsecmd_safe (libdash, False)
 
-        linno_after = parsefile_var.contents.linno - 1; # libdash is 1-indexed
-        nleft_after = parsefile_var.contents.nleft
-
-        if (n_ptr_C == None): # Dash.Null
+        linno_after = parsefile_var.contents.linno - 1
+        if n_ptr_C is None: # Dash.Null
             pass
         elif (n_ptr_C == NEOF): # Dash.Done
             break
         elif (n_ptr_C == NERR): # Dash.Error
             raise ParsingException()
         else:
-            if (nleft_after == EOF_NLEFT):
-                linno_after = linno_after + 1; # The last line wasn't counted
+            nleft_after = parsefile_var.contents.nleft
 
+            if (nleft_after == EOF_NLEFT):
+                linno_after = linno_after + 1
                 if (inputPath != "-"):
                     ## Both of these assertions check "our" assumption with respect to the final parser state
                     ## and are therefore not necessary if they become an issue.
-                    assert ((linno_after == len (lines)) or (linno_after == len (lines) + 1))
+                    assert linno_after in [len (lines), len (lines) + 1]
 
                     # Last line did not have a newline
                     assert (len (lines [-1]) > 0 and (lines [-1][-1] != '\n'))

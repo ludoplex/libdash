@@ -60,97 +60,96 @@ def map_ofnode_nodelist (nl):
     return snek
 
 
-def of_node (n_ptr):
-    if (not n_ptr):
+def of_node(n_ptr):
+    if not n_ptr:
         return SKIP_COMMAND
-    else:
-        n = n_ptr.contents
+    n = n_ptr.contents
 
 #        print ("")
 #        print ("###" + str (n.type))
 #        print ("")
 
-        # 4412 0 NCMD
-        # 2442 7 NSEMI
-        # 517 8  NIF
-        # 255 12 NCASE
-        # 252 5  NAND
-        # 152 6  NOR
-        # 126 11 NFOR
-        # 119 14 NDEFUN
-        # 107 1  NPIPE
-        # 16 4   NSUBSHELL
-        # 14 9   NWHILE
-        # 4 2    NREDIR
-        # 2 10   NUNTIL
+    # 4412 0 NCMD
+    # 2442 7 NSEMI
+    # 517 8  NIF
+    # 255 12 NCASE
+    # 252 5  NAND
+    # 152 6  NOR
+    # 126 11 NFOR
+    # 119 14 NDEFUN
+    # 107 1  NPIPE
+    # 16 4   NSUBSHELL
+    # 14 9   NWHILE
+    # 4 2    NREDIR
+    # 2 10   NUNTIL
 
-        if (n.type == NCMD):
-            return (["Command",
-                     [n.ncmd.linno,
-                      to_assigns (n.ncmd.assign),
-                      to_args (n.ncmd.args),
-                      redirs (n.ncmd.redirect)]])
-        elif (n.type == NSEMI):
-            return ["Semi", of_binary (n)]
-        elif (n.type == NIF):
-            return (["If",
-                     [of_node (n.nif.test),
-                      of_node (n.nif.ifpart),
-                      of_node (n.nif.elsepart)]])
-        elif (n.type == NCASE):
-            cases_hashes = [] # Poetic
+    if (n.type == NCMD):
+        return (["Command",
+                 [n.ncmd.linno,
+                  to_assigns (n.ncmd.assign),
+                  to_args (n.ncmd.args),
+                  redirs (n.ncmd.redirect)]])
+    elif (n.type == NSEMI):
+        return ["Semi", of_binary (n)]
+    elif (n.type == NIF):
+        return (["If",
+                 [of_node (n.nif.test),
+                  of_node (n.nif.ifpart),
+                  of_node (n.nif.elsepart)]])
+    elif (n.type == NCASE):
+        cases_hashes = [] # Poetic
 
-            for case in caselist (n.ncase.cases):
-                (pattern, body) = case
+        for case in caselist (n.ncase.cases):
+            (pattern, body) = case
 
-                current_case \
-                    = {'cpattern' : to_args (pattern),
-                       'cbody'    : of_node (body)}
+            current_case \
+                = {'cpattern' : to_args (pattern),
+                   'cbody'    : of_node (body)}
 
-                cases_hashes.append (current_case)
+            cases_hashes.append (current_case)
 
-            return (["Case",
-                     [n.ncase.linno,
-                      to_arg (n.ncase.expr.contents.narg),
-                      cases_hashes]])
-        elif (n.type == NAND):
-            return ["And", of_binary (n)]
-        elif (n.type == NOR):
-            return ["Or", of_binary (n)]
-        elif (n.type == NFOR):
-            return ["For",
-                    [n.nfor.linno,
-                     to_args (n.nfor.args),
-                     of_node (n.nfor.body),
-                     n.nfor.var.decode ("charmap")]]
-        elif (n.type == NDEFUN):
-            return ["Defun",
-                    [n.ndefun.linno,
-                     n.ndefun.text.decode ("charmap"),
-                     of_node (n.ndefun.body)]]
-        elif (n.type == NPIPE):
-            return (["Pipe",
-                     [n.npipe.backgnd != 0,
-                      map_ofnode_nodelist (n.npipe.cmdlist)]])
-                     # list (map (of_node, nodelist (n.npipe.cmdlist)))]])
-        elif (n.type == NSUBSHELL):
-            return ["Subshell", of_nredir (n)]
-        elif (n.type == NWHILE):
-            return ["While", of_binary (n)]
-        elif (n.type == NREDIR):
-            return ["Redir", of_nredir (n)]
-        elif (n.type == NUNTIL):
-            (t, b) = of_binary (n)
-            return ["While", [["Not", t], b]]
+        return (["Case",
+                 [n.ncase.linno,
+                  to_arg (n.ncase.expr.contents.narg),
+                  cases_hashes]])
+    elif (n.type == NAND):
+        return ["And", of_binary (n)]
+    elif (n.type == NOR):
+        return ["Or", of_binary (n)]
+    elif (n.type == NFOR):
+        return ["For",
+                [n.nfor.linno,
+                 to_args (n.nfor.args),
+                 of_node (n.nfor.body),
+                 n.nfor.var.decode ("charmap")]]
+    elif (n.type == NDEFUN):
+        return ["Defun",
+                [n.ndefun.linno,
+                 n.ndefun.text.decode ("charmap"),
+                 of_node (n.ndefun.body)]]
+    elif (n.type == NPIPE):
+        return (["Pipe",
+                 [n.npipe.backgnd != 0,
+                  map_ofnode_nodelist (n.npipe.cmdlist)]])
+                 # list (map (of_node, nodelist (n.npipe.cmdlist)))]])
+    elif (n.type == NSUBSHELL):
+        return ["Subshell", of_nredir (n)]
+    elif (n.type == NWHILE):
+        return ["While", of_binary (n)]
+    elif (n.type == NREDIR):
+        return ["Redir", of_nredir (n)]
+    elif (n.type == NUNTIL):
+        (t, b) = of_binary (n)
+        return ["While", [["Not", t], b]]
 
-        elif (n.type == NBACKGND):
-            return ["Background", of_nredir (n)]
-        elif (n.type == NNOT):
-            return ["Not", of_node (n.nnot.com)]
-        else:
-            print ("Unexpected type")
-            sys.stdout.flush ()
-            os.abort ()
+    elif (n.type == NBACKGND):
+        return ["Background", of_nredir (n)]
+    elif (n.type == NNOT):
+        return ["Not", of_node (n.nnot.com)]
+    else:
+        print ("Unexpected type")
+        sys.stdout.flush ()
+        os.abort ()
 
 
 def of_nredir (n):
@@ -163,7 +162,7 @@ def mk_file (ty, n):
     return ["File", [ty, n.nfile.fd, arg]]
 
 
-def mk_dup (ty, n):
+def mk_dup(ty, n):
     ndup = n.ndup
     vname = ndup.vname
 
@@ -176,8 +175,7 @@ def mk_dup (ty, n):
         else:
             dupfd_str = str (dupfd)
 
-            for i in range (len (dupfd_str)):
-                tgt.append (["C", ord (dupfd_str [i])])
+            tgt.extend(["C", ord (dupfd_str [i])] for i in range (len (dupfd_str)))
     else:
         tgt = to_arg (vname.contents.narg)
 
@@ -229,7 +227,7 @@ def of_binary (n):
     return [of_node (n.nbinary.ch1), of_node (n.nbinary.ch2)]
 
 
-def to_arg (narg):
+def to_arg(narg):
     s = explode_rev (narg.text)
     bqlist = narg.backquote
     stack = []
@@ -242,244 +240,205 @@ def to_arg (narg):
 #        print ("bqlist is not null")
 #        print (bqlist)
 #        os.abort ()
-    assert (len (stack) == 0)
+    assert not stack
 
     return (a)
 
 
-def parse_arg (s, bqlist, stack):
+def parse_arg(s, bqlist, stack):
     acc = []
 
-    while (True):
+    while True:
         s_len = len (s)
         # stack_len = len (stack)
 
         # | [],[] -> [],[],bqlist,[]
         if ((s_len == 0) and (len (stack) == 0)):
             return (acc)
-        # | [],`CTLVar::_ -> failwith "End of string before CTLENDVAR"
-
         elif (s_len == 0): # We know that len (stack) > 0!
             if (stack [-1] == STACK_CTLVAR):
                 print ("End of string before CTLENDVAR")
-                os.abort ()
-            # | [],`CTLAri::_ -> failwith "End of string before CTLENDARI"
             elif (stack [-1] == STACK_CTLARI):
                 print (s)
                 print (stack)
 
                 print ("End of string before CTLENDARI")
-                os.abort ()
-            # | [],`CTLQuo::_ -> failwith "End of string before CTLQUOTEMARK"
             elif (stack [-1] == STACK_CTLQUO):
                 print (s)
                 print (stack)
 
                 print ("End of string before CTLENDQUOTEMARK")
-                os.abort ()
             else:
                 print ("Invalid stack")
-                os.abort ()
+            os.abort ()
+        elif ((s_len >= 2) and (s [-1] == CTLESC)):
+            s.pop ()
+            c = s.pop ()
 
-        else: # We know that len (s) > 0
-            # (* CTLESC *)
-            # | '\129'::c::s,_ -> arg_char (E c) s bqlist stack
-            if ((s_len >= 2) and (s [-1] == CTLESC)):
-                s.pop ()
+            acc.append (["E", c])
+
+        elif ((s_len >= 2) and (s [-1] == CTLVAR)):
+            s.pop ()
+            t = s.pop ()
+
+            # let var_name,s = split_at (fun c -> c = '=') s in
+            var_name = ""
+            while ((len (s) > 0) and (s [-1] != ORD_EQUALS)):
                 c = s.pop ()
+                var_name = var_name + chr (c)
 
-                acc.append (["E", c])
+            v = []
 
-            # (* CTLVAR *)
-            # | '\130'::t::s,_ ->
-            elif ((s_len >= 2) and (s [-1] == CTLVAR)):
+            if (((t & 0xf) == 0x1) and (len (s) >= 1) and (s [-1] == ORD_EQUALS)):
                 s.pop ()
-                t = s.pop ()
 
-                # let var_name,s = split_at (fun c -> c = '=') s in
-                var_name = ""
-                while ((len (s) > 0) and (s [-1] != ORD_EQUALS)):
-                    c = s.pop ()
-                    var_name = var_name + chr (c)
+                v = ["V", ["Normal", False, var_name, []]]
+            elif (((t & 0xf) == 0xa) and (len (s) >= 2) and (s [-1] == ORD_EQUALS) and (s [-2] == 131)):
+                s.pop ()
+                s.pop ()
 
-                v = []
-
-                if (((t & 0xf) == 0x1) and (len (s) >= 1) and (s [-1] == ORD_EQUALS)):
-                    s.pop ()
-
-                    v = ["V", ["Normal", False, var_name, []]]
-                elif (((t & 0xf) == 0xa) and (len (s) >= 2) and (s [-1] == ORD_EQUALS) and (s [-2] == 131)):
-                    s.pop ()
-                    s.pop ()
-
-                    v = ["V", ["Length", False, var_name, []]]
-                elif ((((t & 0xf) == 0x1) or ((t & 0xf) == 0xa)) and (len (s) >= 1)):
-                    print ("Missing CTLENDVAR for VSNORMAL/VSLENGTH")
-                    os.abort ()
-                elif ((len (s) >= 1) and (s [-1] == ORD_EQUALS)):
-                    s.pop ()
-
-                    vstype = t & 0xf
-
-                    stack.append (STACK_CTLVAR)
-
-                    a = parse_arg (s, bqlist, stack)
-
-                    v = ["V", [var_type (vstype), (t & 0x10 == 0x10), var_name, a]]
-                elif (len (s) >= 1):
-                    print (s)
-                    print (stack)
-
-                    print ("Expected '=' terminating variable name")
-                    os.abort ()
-                elif (len (s) == 0):
-                    print ("Expected '=' terminating variable name, found EOF")
-                    os.abort ()
-                else:
-                    print ("This shouldn't be reachable")
-                    os.abort ()
-
-                acc.append (v)
-
-            # | '\130'::_, _ -> raise (ParseException "bad substitution (missing variable name in ${}?")
-            elif (False and (s [-1] == CTLVAR)): # Disable to match PaSH's version of libdash
-                print (s)
-                print (stack)
-
-                print ("bad substitution (missing variable name in ${}?")
+                v = ["V", ["Length", False, var_name, []]]
+            elif t & 0xF in [0x1, 0xA] and len(s) >= 1:
+                print ("Missing CTLENDVAR for VSNORMAL/VSLENGTH")
                 os.abort ()
-
-            # (* CTLENDVAR *)
-            # | '\131'::s,`CTLVar::stack' -> [],s,bqlist,stack'
-            elif (s [-1] == CTLENDVAR):
-                if (len (stack) >= 1):
-                    if (stack [-1] == STACK_CTLVAR):
-                        s.pop ()
-                        stack.pop ()
-
-                        return (acc)
-                    # | '\131'::_,`CTLAri::_ -> failwith "Saw CTLENDVAR before CTLENDARI"
-                    elif (stack [-1] == STACK_CTLARI):
-                        print ("Saw CTLENDVAR before CTLENDARI")
-                        os.abort ()
-                    # | '\131'::_,`CTLQuo::_ -> failwith "Saw CTLENDVAR before CTLQUOTEMARK"
-                    elif (stack [-1] == STACK_CTLQUO):
-                        print ("Saw CTLENDVAR before CTLQUOTEMARK")
-                        os.abort ()
-                    # | '\131'::_,[] -> failwith "Saw CTLENDVAR outside of CTLVAR"
-                else:
-                    print ("Saw CTLENDVAR outside of CTLVAR")
-                    os.abort ()
-
-            # (* CTLBACKQ *)
-            # | '\132'::s,_ ->
-            elif (s [-1] == CTLBACKQ):
+            elif ((len (s) >= 1) and (s [-1] == ORD_EQUALS)):
                 s.pop ()
 
-                if (not bqlist):
-                    print (bqlist)
-                    print ("Saw CTLBACKQ but bqlist was null")
-                    os.abort ()
-                else:
-                    acc.append (["B", of_node (bqlist.contents.n)])
+                vstype = t & 0xf
 
-                    bqlist = bqlist.contents.next
-
-            # (* CTLARI *)
-            # | '\134'::s,_ ->
-            elif (s [-1] == CTLARI):
-                s.pop ()
-
-                stack.append (STACK_CTLARI)
+                stack.append (STACK_CTLVAR)
 
                 a = parse_arg (s, bqlist, stack)
 
-                # TODO: assert (stack = stack')
+                v = ["V", [var_type (vstype), (t & 0x10 == 0x10), var_name, a]]
+            elif (len (s) >= 1):
+                print (s)
+                print (stack)
 
-                acc.append (["A", a])
+                print ("Expected '=' terminating variable name")
+                os.abort ()
+            elif (len (s) == 0):
+                print ("Expected '=' terminating variable name, found EOF")
+                os.abort ()
+            else:
+                print ("This shouldn't be reachable")
+                os.abort ()
 
-            # (* CTLENDARI *)
-            # | '\135'::s,`CTLAri::stack' -> [],s,bqlist,stack'
-            elif (s [-1] == CTLENDARI):
-                if (len (stack) >= 1):
-                    if (stack [-1] == STACK_CTLARI):
-                        s.pop ()
-                        stack.pop ()
+            acc.append (v)
 
-                        return (acc)
-                    # | '\135'::_,`CTLVar::_' -> failwith "Saw CTLENDARI before CTLENDVAR"
-                    elif (stack [-1] == STACK_CTLVAR):
-                        print ("Saw CTLENDARI before CTLENDVAR")
-                        os.abort ()
-                    # | '\135'::_,`CTLQuo::_' -> failwith "Saw CTLENDARI before CTLQUOTEMARK"
-                    elif (stack [-1] == STACK_CTLQUO):
-                        print ("Saw CTLENDARI before CTLQUOTEMARK")
-                        os.abort ()
-                    # | '\135'::_,[] -> failwith "Saw CTLENDARI outside of CTLARI"
-                else:
-                    print ("Saw CTLENDARI outside of CTLARI")
-                    os.abort ()
-
-            # (* CTLQUOTEMARK *)
-            # | '\136'::s,`CTLQuo::stack' -> [],s,bqlist,stack'
-            elif (s [-1] == CTLQUOTEMARK):
-                if ((len (stack) >= 1) and (stack [-1] == STACK_CTLQUO)):
+        elif (s [-1] == CTLENDVAR):
+            if (len (stack) >= 1):
+                if (stack [-1] == STACK_CTLVAR):
                     s.pop ()
                     stack.pop ()
 
                     return (acc)
-                # | '\136'::s,_ ->
-                else:
-                    s.pop ()
-                    stack.append (STACK_CTLQUO)
-
-                    a = parse_arg (s, bqlist, stack)
-
-                    acc.append (["Q", a])
-
-            # (* tildes *)
-            # | '~'::s,stack ->
-            elif (s [-1] == ORD_TILDE):
-                s.pop ()
-
-                if ((STACK_CTLQUO in stack) or (STACK_CTLARI in stack)):
-                    acc.append (["C", ORD_TILDE])
-                else:
-                    uname = parse_tilde (s)
-
-                    acc.append (["T", uname])
-
-            # (* ordinary character *)
-            # | c::s,_ -> arg_char (C c) s bqlist stack
+                # | '\131'::_,`CTLAri::_ -> failwith "Saw CTLENDVAR before CTLENDARI"
+                elif (stack [-1] == STACK_CTLARI):
+                    print ("Saw CTLENDVAR before CTLENDARI")
+                    os.abort ()
+                # | '\131'::_,`CTLQuo::_ -> failwith "Saw CTLENDVAR before CTLQUOTEMARK"
+                elif (stack [-1] == STACK_CTLQUO):
+                    print ("Saw CTLENDVAR before CTLQUOTEMARK")
+                    os.abort ()
+                # | '\131'::_,[] -> failwith "Saw CTLENDVAR outside of CTLVAR"
             else:
-                c = s.pop ()
+                print ("Saw CTLENDVAR outside of CTLVAR")
+                os.abort ()
 
-                acc.append (["C", c])
+        elif (s [-1] == CTLBACKQ):
+            s.pop ()
+
+            if bqlist:
+                acc.append (["B", of_node (bqlist.contents.n)])
+
+                bqlist = bqlist.contents.next
+
+            else:
+                print (bqlist)
+                print ("Saw CTLBACKQ but bqlist was null")
+                os.abort ()
+        elif (s [-1] == CTLARI):
+            s.pop ()
+
+            stack.append (STACK_CTLARI)
+
+            a = parse_arg (s, bqlist, stack)
+
+            # TODO: assert (stack = stack')
+
+            acc.append (["A", a])
+
+        elif (s [-1] == CTLENDARI):
+            if (len (stack) >= 1):
+                if (stack [-1] == STACK_CTLARI):
+                    s.pop ()
+                    stack.pop ()
+
+                    return (acc)
+                # | '\135'::_,`CTLVar::_' -> failwith "Saw CTLENDARI before CTLENDVAR"
+                elif (stack [-1] == STACK_CTLVAR):
+                    print ("Saw CTLENDARI before CTLENDVAR")
+                    os.abort ()
+                # | '\135'::_,`CTLQuo::_' -> failwith "Saw CTLENDARI before CTLQUOTEMARK"
+                elif (stack [-1] == STACK_CTLQUO):
+                    print ("Saw CTLENDARI before CTLQUOTEMARK")
+                    os.abort ()
+                # | '\135'::_,[] -> failwith "Saw CTLENDARI outside of CTLARI"
+            else:
+                print ("Saw CTLENDARI outside of CTLARI")
+                os.abort ()
+
+        elif (s [-1] == CTLQUOTEMARK):
+            if ((len (stack) >= 1) and (stack [-1] == STACK_CTLQUO)):
+                s.pop ()
+                stack.pop ()
+
+                return (acc)
+            # | '\136'::s,_ ->
+            else:
+                s.pop ()
+                stack.append (STACK_CTLQUO)
+
+                a = parse_arg (s, bqlist, stack)
+
+                acc.append (["Q", a])
+
+        elif (s [-1] == ORD_TILDE):
+            s.pop ()
+
+            if ((STACK_CTLQUO in stack) or (STACK_CTLARI in stack)):
+                acc.append (["C", ORD_TILDE])
+            else:
+                uname = parse_tilde (s)
+
+                acc.append (["T", uname])
+
+        else:
+            c = s.pop ()
+
+            acc.append (["C", c])
 
 
-def stringOrNull (acc_str):
-    if (acc_str == ""):
-        return "None"
-    else:
-        return ["Some", acc_str]
+def stringOrNull(acc_str):
+    return "None" if (acc_str == "") else ["Some", acc_str]
 
 
-def parse_tilde (s):
+def parse_tilde(s):
     acc_str = ""
 
-    while (True):
+    while True:
         if (s == []):
             return stringOrNull (acc_str)
-        else:
-            s_last = s [-1]
+        s_last = s [-1]
 
-            if (s_last in [CTLESC, CTLVAR, CTLQUOTEMARK, CTLBACKQ, CTLARI]):
-                return ("None")
-            elif (s_last in [CTLENDVAR, CTLENDARI, ORD_COLON, ORD_SLASH]):
-                return (stringOrNull (acc_str))
-            else:
-                c = s.pop ()
-                acc_str = acc_str + chr (c)
+        if (s_last in [CTLESC, CTLVAR, CTLQUOTEMARK, CTLBACKQ, CTLARI]):
+            return ("None")
+        elif (s_last in [CTLENDVAR, CTLENDARI, ORD_COLON, ORD_SLASH]):
+            return (stringOrNull (acc_str))
+        else:
+            c = s.pop ()
+            acc_str = acc_str + chr (c)
 
 
 def to_assign (a_rev):
@@ -510,12 +469,12 @@ def to_assign (a_rev):
 
 # Inlined to_args
 # to_assigns n = List.map (to_assign []) (to_args n)
-def to_assigns (n):
+def to_assigns(n):
     assigns = []
 
-    while (n):
+    while n:
         if (n.contents.type != NARG):
-            print ("Unexpected type: " + n.contents.type)
+            print(f"Unexpected type: {n.contents.type}")
             sys.stdout.flush ()
             os.abort ()
 
@@ -540,14 +499,14 @@ def to_assigns_classic (n):
     return (assigns)
 
 
-def to_args (n):
+def to_args(n):
     snek = []
 
     # ctypes has different semantics for POINTER vs. c_void_p
     # See https://groups.google.com/g/nzpug/c/5CJxaWjuQro
-    while (n):
+    while n:
         if (n.contents.type != NARG):
-            print ("Unexpected type: " + n.contents.type)
+            print(f"Unexpected type: {n.contents.type}")
             sys.stdout.flush ()
             os.abort ()
 

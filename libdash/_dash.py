@@ -309,21 +309,14 @@ def explode_rev (bytes):
     return (charlist);
 
 
-def explode (bytes):
+def explode(bytes):
     s = bytes.decode ("charmap");
 
-    charlist = [];
-
-    for i in range (len (s)):
-        charlist.append (ord (s [i]));
-
-    return (charlist);
+    return [ord (s [i]) for i in range (len (s))]
 
 
-def implode_rev (l):
-    s = implode (reversed (l));
-
-    return (s);
+def implode_rev(l):
+    return implode (reversed (l))
 
 
 def implode (l):

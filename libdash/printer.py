@@ -27,21 +27,8 @@ QUOTE_MODES = [UNQUOTED, QUOTED, HEREDOC]
 #   | [] -> ""
 #   | [s] -> s
 #   | s::ss -> s ^ p ^ intercalate p ss  
-def intercalate (p, ss):
-    str = p.join (ss);
-
-#    str = "";
-#
-#    i = 0;
-#    for s in ss:
-#        if (i > 0):
-#            str = str + p;
-#
-#        str = str + s;
-#
-#        i = i + 1;
-
-    return (str);
+def intercalate(p, ss):
+    return p.join (ss)
 
 
 # dash.ml
@@ -54,8 +41,8 @@ def braces (s):
 # dash.ml
 #
 # let parens s = "( " ^ s ^ " )"
-def parens (s):
-    return "( " + s + " )";
+def parens(s):
+    return f"( {s} )";
 
 
 # let string_of_var_type = function
@@ -85,11 +72,8 @@ def separated (f, l):
 #   if expected = actual
 #   then ""
 #   else string_of_int actual
-def show_unless (expected, actual):
-    if (expected == actual):
-        return "";
-    else:
-        return (str (actual));
+def show_unless(expected, actual):
+    return "" if (expected == actual) else (str (actual))
 
 
 # let background s = "{ " ^ s ^ " & }"
@@ -145,89 +129,80 @@ def to_string(ast):
     """
     # print (ast);
 
-    if (len (ast) == 0):
-        pass;
-    else:
-        (type, params) = ast;
+    if len(ast) == 0:
+        return
+    (type, params) = ast;
 
-        if (type == "Command"):
-            (_, assigns, cmds, redirs) = params;
-            str = separated (string_of_assign, assigns);
-            if ((len (assigns) == 0) or (len (cmds) == 0)):
-                pass;
-            else:
-                str += " ";
-            str += separated (string_of_arg, cmds) + string_of_redirs (redirs);
+    if (type == "Command"):
+        (_, assigns, cmds, redirs) = params;
+        str = separated (string_of_assign, assigns);
+        if len(assigns) != 0 and len(cmds) != 0:
+            str += " ";
+        str += separated (string_of_arg, cmds) + string_of_redirs (redirs);
 
-            return (str);
-        elif (type == "Pipe"):
-            (bg, ps) = params;
-            p = intercalate (" | ", (map (to_string, ps)));
+        return (str);
+    elif (type == "Pipe"):
+        (bg, ps) = params;
+        p = intercalate (" | ", (map (to_string, ps)));
 
-            if (bg):
-                return (background (p));
-            else:
-                return (p);
-        elif (type == "Redir"):
-            (_, a, redirs) = params;
+        return (background (p)) if bg else p
+    elif (type == "Redir"):
+        (_, a, redirs) = params;
 
-            return to_string (a) + string_of_redirs (redirs);
-        elif (type == "Background"):
-            (_, a, redirs) = params;
+        return to_string (a) + string_of_redirs (redirs);
+    elif (type == "Background"):
+        (_, a, redirs) = params;
 
-            return background (to_string (a) + string_of_redirs (redirs));
-        elif (type == "Subshell"):
-            (_, a, redirs) = params;
+        return background (to_string (a) + string_of_redirs (redirs));
+    elif (type == "Subshell"):
+        (_, a, redirs) = params;
 
-            return parens (to_string (a) + string_of_redirs (redirs));
-        elif (type == "And"):
-            (a1, a2) = params
+        return parens (to_string (a) + string_of_redirs (redirs));
+    elif (type == "And"):
+        (a1, a2) = params
 
-            return braces(to_string(a1)) + " && " + braces(to_string(a2))
-        elif (type == "Or"):
-            (a1, a2) = params
+        return f"{braces(to_string(a1))} && {braces(to_string(a2))}"
+    elif (type == "Or"):
+        (a1, a2) = params
 
-            return braces(to_string(a1)) + " || " + braces(to_string(a2))
-        elif (type == "Not"):
-            (a) = params
+        return f"{braces(to_string(a1))} || {braces(to_string(a2))}"
+    elif (type == "Not"):
+        (a) = params
 
-            return "! " + braces(to_string(a))
-        elif (type == "Semi"):
-            (a1, a2) = params
+        return f"! {braces(to_string(a))}"
+    elif (type == "Semi"):
+        (a1, a2) = params
 
-            return braces(to_string(a1)) + " \n " + braces(to_string(a2))
-        elif (type == "If"):
-            (c, t, e) = params;
-            return string_of_if (c, t, e);
-        elif (type == "While"):
-            (first, b) = params;
+        return braces(to_string(a1)) + " \n " + braces(to_string(a2))
+    elif (type == "If"):
+        (c, t, e) = params;
+        return string_of_if (c, t, e);
+    elif (type == "While"):
+        (first, b) = params;
 
-            if (first [0] == "Not"):
-                (_, t) = first;
+        if (first [0] == "Not"):
+            (_, t) = first;
 
-                return "until " + to_string (t) + "; do " + to_string (b) + "; done ";
-            else:
-                t = first;
-
-                return "while " + to_string (t) + "; do " + to_string (b) + "; done ";
-        elif (type == "For"):
-            (_, a, body, var) = params;
-
-            return "for " + var + " in " + separated (string_of_arg, a) + "; do " + \
-                   to_string (body) + "; done";
-        elif (type == "Case"):
-            (_, a, cs) = params;
-
-            return "case " + string_of_arg (a) + " in " + \
-                   separated (string_of_case, cs) + " esac";
-            abort ();
-        elif (type == "Defun"):
-            (_, name, body) = params;
-
-            return name + "() {\n" + to_string (body) + "\n}";
+            return f"until {to_string(t)}; do {to_string(b)}; done ";
         else:
-            print ("Invalid type: %s" % type);
-            abort ();
+            t = first;
+
+            return f"while {to_string(t)}; do {to_string(b)}; done ";
+    elif (type == "For"):
+        (_, a, body, var) = params;
+
+        return f"for {var} in {separated(string_of_arg, a)}; do {to_string(body)}; done";
+    elif (type == "Case"):
+        (_, a, cs) = params;
+
+        return f"case {string_of_arg(a)} in {separated(string_of_case, cs)} esac";
+    elif (type == "Defun"):
+        (_, name, body) = params;
+
+        return name + "() {\n" + to_string (body) + "\n}";
+    else:
+        print(f"Invalid type: {type}");
+        abort ();
 
 
 # and string_of_if c t e =
@@ -237,9 +212,8 @@ def to_string(ast):
 #    | Command (-1,[],[],[]) -> "; fi" (* one-armed if *)
 #    | If (c,t,e) -> "; el" ^ string_of_if c t e
 #    | _ -> "; else " ^ to_string e ^ "; fi")
-def string_of_if (c, t, e):
-    str1 = "if " + to_string (c) + \
-           "; then " + to_string (t);
+def string_of_if(c, t, e):
+    str1 = f"if {to_string(c)}; then {to_string(t)}";
 
     # ['Command', [-1, [], [], []]]
     if (    (len (e) == 2)        \
@@ -249,14 +223,14 @@ def string_of_if (c, t, e):
         and (len (e [1][1]) == 0) \
         and (len (e [1][2]) == 0) \
         and (len (e [1][3]) == 0):
-       str1 = str1 + "; fi";
+        str1 = f"{str1}; fi";
     elif (    e [0] == "If" \
           and (len (e [1]) == 3)):
         (c2, t2, e2) = e [1];
 
-        str1 += "; el" + string_of_if (c2, t2, e2);
+        str1 += f"; el{string_of_if(c2, t2, e2)}";
     else:
-        str1 += "; else " + to_string (e) + "; fi";
+        str1 += f"; else {to_string(e)}; fi";
 
     return (str1);
 
@@ -328,7 +302,7 @@ def escaped (param):
 #      "${" ^ name ^ (if nul then ":" else "") ^ string_of_var_type vt ^ string_of_arg a ^ "}"
 #   | Q a -> "\"" ^ string_of_arg a ^ "\""
 #   | B t -> "$(" ^ to_string t ^ ")"
-def string_of_arg_char (c, quote_mode=UNQUOTED):
+def string_of_arg_char(c, quote_mode=UNQUOTED):
     (type, param) = c;
 
     if (type == "E"):
@@ -340,18 +314,17 @@ def string_of_arg_char (c, quote_mode=UNQUOTED):
         chars_to_escape = ["'", '"', '`', '(', ')', '{', '}', '$', '&', '|', ';']
         ## Chars to escape only when not quoted
         chars_to_escape_when_no_quotes = ['*', '?', '[', ']', '#', '<', '>', '~', ' ']
-        if char in chars_to_escape:
-            return '\\' + char
-        elif char in chars_to_escape_when_no_quotes and quote_mode==UNQUOTED:
+        if (
+            char in chars_to_escape
+            or char in chars_to_escape_when_no_quotes
+            and quote_mode == UNQUOTED
+        ):
             return '\\' + char
         else:
             return escaped (param)
     elif (type == "C"):
         # HEREDOC should never escape double quotes per POSIX 2.7.4
-        if quote_mode==QUOTED and chr(param) == '"':
-            return '\\"'
-        else:
-            return chr (param);
+        return '\\"' if quote_mode==QUOTED and chr(param) == '"' else chr (param)
     elif (type == "T"):
         if (param == "None"):
             return "~";
@@ -359,14 +332,14 @@ def string_of_arg_char (c, quote_mode=UNQUOTED):
             if (param [0] == "Some"):
                 (_, u) = param;
 
-                return "~" + u;
+                return f"~{u}";
             else:
                 abort ();
         else:
-            print ("Unexpected param for T: %s" % param);
+            print(f"Unexpected param for T: {param}");
             abort ();
     elif (type == "A"):
-        return "$((" + string_of_arg (param, quote_mode) + "))";
+        return f"$(({string_of_arg(param, quote_mode)}))";
     elif (type == "V"):
         assert (len (param) == 4);
         if (param [0] == "Length"):
@@ -382,9 +355,7 @@ def string_of_arg_char (c, quote_mode=UNQUOTED):
             # to True.
             if (str (nul).lower () == "true"):
                 stri += ":";
-            elif (str (nul).lower () == "false"):
-                pass;
-            else:
+            elif str(nul).lower() != "false":
                 os.abort (); # For my own sanity
 
             stri += string_of_var_type (vt) + string_of_arg (a, quote_mode) + "}";
@@ -393,7 +364,7 @@ def string_of_arg_char (c, quote_mode=UNQUOTED):
     elif (type == "Q"):
         return "\"" + string_of_arg (param, quote_mode=QUOTED) + "\"";
     elif (type == "B"):
-        return "$(" + to_string (param) + ")";
+        return f"$({to_string(param)})";
     else:
         abort ();
 
@@ -401,7 +372,7 @@ def string_of_arg_char (c, quote_mode=UNQUOTED):
 # and string_of_arg = function
 #   | [] -> ""
 #   | c :: a -> string_of_arg_char c ^ string_of_arg a
-def string_of_arg (args, quote_mode=UNQUOTED):
+def string_of_arg(args, quote_mode=UNQUOTED):
     # print (args);
 
     i = 0
@@ -419,17 +390,15 @@ def string_of_arg (args, quote_mode=UNQUOTED):
             c = "\\$"
         text.append(c)
 
-        i = i+1
-    
-    text = "".join(text)
+        i += 1
 
-    return (text);
+    return "".join(text)
 
 
 # and string_of_assign (v,a) = v ^ "=" ^ string_of_arg a
-def string_of_assign (both):
+def string_of_assign(both):
     (v, a) = both;
-    return v + "=" + string_of_arg (a);
+    return f"{v}={string_of_arg(a)}";
 
 
 # and string_of_case c =
@@ -448,7 +417,7 @@ def string_of_case (c):
 #   else s
 #
 # OCaml implementation above is O(n^1.5). Algorithm below is linear.
-def fresh_marker (heredoc):
+def fresh_marker(heredoc):
     respectsFound = set();
 
     for line in heredoc.split ('\n'):
@@ -462,8 +431,8 @@ def fresh_marker (heredoc):
             respectsFound.add(respects);
 
     i = 0;
-    while (True):
-        if (not (i in respectsFound)):
+    while True:
+        if i not in respectsFound:
             return "EOF" + ("F" * i);
 
         i = i + 1;
@@ -502,31 +471,31 @@ def fresh_marker0 (heredoc):
 #      let marker = fresh_marker (lines heredoc) "EOF" in
 #      show_unless 0 fd ^ "<<" ^
 #      (if t = XHere then marker else "'" ^ marker ^ "'") ^ "\n" ^ heredoc ^ marker ^ "\n"
-def string_of_redir (redir):
+def string_of_redir(redir):
     assert (len (redir) == 2);
 
     (type, params) = redir;
     if (type == "File"):
         (subtype, fd, a) = params;
         if (subtype == "To"):
-            return (show_unless (1, fd) + ">" + string_of_arg (a));
+            return f"{show_unless(1, fd)}>{string_of_arg(a)}";
         elif (subtype == "Clobber"):
-            return (show_unless (1, fd) + ">|" + string_of_arg (a));
+            return f"{show_unless(1, fd)}>|{string_of_arg(a)}";
         elif (subtype == "From"):
-            return (show_unless (0, fd) + "<" + string_of_arg (a));
+            return f"{show_unless(0, fd)}<{string_of_arg(a)}";
         elif (subtype == "FromTo"):
-            return (show_unless (0, fd) + "<>" + string_of_arg (a));
+            return f"{show_unless(0, fd)}<>{string_of_arg(a)}";
         elif (subtype == "Append"):
-            return (show_unless (1, fd) + ">>" + string_of_arg (a));
+            return f"{show_unless(1, fd)}>>{string_of_arg(a)}";
         else:
             abort ();
     elif (type == "Dup"):
         (subtype, fd, tgt) = params;
 
         if (subtype == "ToFD"):
-            return (show_unless (1, fd) + ">&" + string_of_arg (tgt));
+            return f"{show_unless(1, fd)}>&{string_of_arg(tgt)}";
         elif (subtype == "FromFD"):
-            return (show_unless (0, fd) + "<&" + string_of_arg (tgt));
+            return f"{show_unless(0, fd)}<&{string_of_arg(tgt)}";
         else:
             abort ();
     elif (type == "Heredoc"):
@@ -536,24 +505,20 @@ def string_of_redir (redir):
         heredoc = string_of_arg (a, quote_mode=HEREDOC);
         marker = fresh_marker0 (heredoc);
 
-        stri = show_unless (0, fd) + "<<";
-        if (t == "XHere"):
-            stri += marker;
-        else:
-            stri += "'" + marker + "'";
-
+        stri = f"{show_unless(0, fd)}<<";
+        stri += marker if (t == "XHere") else f"'{marker}'"
         stri += "\n" + heredoc + marker + "\n";
 
         return (stri);
     else:
-        print ("Invalid type: %s" % type);
+        print(f"Invalid type: {type}");
         abort ();
 
 
 # and string_of_redirs rs =
 #   let ss = List.map string_of_redir rs in
 #   (if List.length ss > 0 then " " else "") ^ intercalate " " ss
-def string_of_redirs (rs):
+def string_of_redirs(rs):
 #    if (rs == []):
 #        return "";
 #
@@ -564,6 +529,6 @@ def string_of_redirs (rs):
     str = "";
 
     for redir in rs:
-        str = str + " " + string_of_redir (redir);
+        str = f"{str} {string_of_redir(redir)}";
 
     return (str);
